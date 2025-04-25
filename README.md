@@ -72,21 +72,20 @@ cd my-discord-bot
 ### 2. Cài đặt dependency
 
 ```bash
-npm install @discordjs/opus@^0.10.0 \
-            @discordjs/rest@^2.4.3 \
-            @discordjs/voice@^0.18.0 \
-            @google/generative-ai@^0.24.0 \
-            canvas@^3.1.0 \
-            discord.js@^14.18.0 \
-            dotenv@^16.5.0 \
-            ffmpeg-static@^5.2.0 \
-            libsodium-wrappers@^0.7.15 \
-            node-fetch@^3.3.2 \
-            node-ical@^0.20.1 \
-            opusscript@^0.0.8 \
-            play-dl@^1.9.7 \
-            ytdl-core-discord@^1.3.1
-
+npm install @discordjs/opus@^0.10.0
+npm install @discordjs/rest@^2.4.3
+npm install @discordjs/voice@^0.18.0
+npm install @google/generative-ai@^0.24.0
+npm install canvas@^3.1.0
+npm install discord.js@^14.18.0
+npm install dotenv@^16.5.0
+npm install ffmpeg-static@^5.2.0
+npm install libsodium-wrappers@^0.7.15
+npm install node-fetch@^3.3.2
+npm install node-ical@^0.20.1
+npm install opusscript@^0.0.8
+npm install play-dl@^1.9.7
+npm install ytdl-core-discord@^1.3.1
 ```
 
 ### 3. Tạo file `.env`
