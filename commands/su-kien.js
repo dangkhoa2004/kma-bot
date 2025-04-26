@@ -1,6 +1,10 @@
-const { GuildScheduledEventPrivacyLevel, GuildScheduledEventEntityType } = require('discord.js');
-const ical = require('node-ical');
-const ICS_URL = "https://calendar.google.com/calendar/ical/vi.vietnamese%23holiday%40group.v.calendar.google.com/public/basic.ics";
+const {
+  GuildScheduledEventPrivacyLevel,
+  GuildScheduledEventEntityType,
+} = require("discord.js");
+const ical = require("node-ical");
+const ICS_URL =
+  "https://calendar.google.com/calendar/ical/vi.vietnamese%23holiday%40group.v.calendar.google.com/public/basic.ics";
 
 module.exports = {
   name: "sukien",
@@ -9,7 +13,7 @@ module.exports = {
     try {
       const guild = message.guild;
       if (!guild) {
-        await message.reply('❌ Không thể tạo sự kiện ngoài server.');
+        await message.reply("❌ Không thể tạo sự kiện ngoài server.");
         return;
       }
 
@@ -26,7 +30,7 @@ module.exports = {
 
       for (let k in events) {
         const ev = events[k];
-        if (ev.type === 'VEVENT') {
+        if (ev.type === "VEVENT") {
           const eventStartDate = new Date(ev.start);
           const eventEndDate = new Date(ev.end);
 
@@ -57,9 +61,11 @@ module.exports = {
       let skippedCount = 0;
 
       for (const ev of upcomingEvents) {
-        const alreadyExists = existingEvents.some(existing => {
+        const alreadyExists = existingEvents.some((existing) => {
           const sameName = existing.name === ev.summary;
-          const sameDay = new Date(existing.scheduledStartTimestamp).toDateString() === ev.startDate.toDateString();
+          const sameDay =
+            new Date(existing.scheduledStartTimestamp).toDateString() ===
+            ev.startDate.toDateString();
           return sameName && sameDay;
         });
 
@@ -77,14 +83,19 @@ module.exports = {
           entityMetadata: {
             location: "Việt Nam 🇻🇳",
           },
-          description: `Sự kiện: ${ev.summary}\nTừ: ${ev.startDate.toLocaleDateString('vi-VN')}\nĐến: ${ev.endDate.toLocaleDateString('vi-VN')}`,
+          description: `Sự kiện: ${
+            ev.summary
+          }\nTừ: ${ev.startDate.toLocaleDateString(
+            "vi-VN"
+          )}\nĐến: ${ev.endDate.toLocaleDateString("vi-VN")}`,
         });
 
         createdCount++;
       }
 
-      await message.reply(`✅ Đã tạo ${createdCount} sự kiện mới.\n⚠️ Bỏ qua ${skippedCount} sự kiện đã tồn tại.`);
-
+      await message.reply(
+        `✅ Đã tạo ${createdCount} sự kiện mới.\n⚠️ Bỏ qua ${skippedCount} sự kiện đã tồn tại.`
+      );
     } catch (err) {
       console.error("❌ Lỗi khi tạo sự kiện:", err);
       await message.reply("❌ Có lỗi xảy ra khi tạo sự kiện.");

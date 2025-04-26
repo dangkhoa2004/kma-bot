@@ -5,7 +5,8 @@ const ICS_URL =
 
 module.exports = {
   name: "lich",
-  description: "Gửi mỗi sự kiện 1 Embed riêng, sắp xếp ngày gần nhất lên đầu, layout có khoảng cách rõ",
+  description:
+    "Gửi mỗi sự kiện 1 Embed riêng, sắp xếp ngày gần nhất lên đầu, layout có khoảng cách rõ",
   async execute(message, args, client) {
     try {
       const response = await fetch(ICS_URL);
@@ -41,7 +42,11 @@ module.exports = {
       upcomingEvents.sort((a, b) => a.date - b.date);
 
       for (const ev of upcomingEvents) {
-        const dateStr = `${ev.date.getDate().toString().padStart(2, "0")}/${(ev.date.getMonth() + 1).toString().padStart(2, "0")}/${ev.date.getFullYear()}`;
+        const dateStr = `${ev.date.getDate().toString().padStart(2, "0")}/${(
+          ev.date.getMonth() + 1
+        )
+          .toString()
+          .padStart(2, "0")}/${ev.date.getFullYear()}`;
 
         const embed = new EmbedBuilder()
           .setColor("#5865F2")
@@ -53,7 +58,6 @@ module.exports = {
 
         await message.channel.send({ embeds: [embed] });
       }
-
     } catch (err) {
       console.error("❌ Lỗi khi lấy lịch:", err);
       await message.reply("❌ Đã xảy ra lỗi khi lấy lịch sự kiện.");

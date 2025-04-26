@@ -1,137 +1,164 @@
 // utils/githubCommitsHelper.js
 const axios = require("axios");
 const { EmbedBuilder } = require("discord.js");
-const { getAllUserRepos } = require('./githubHelper'); // Ensure correct path
+const { getAllUserRepos } = require("./githubHelper");
 
 const GITHUB_API_BASE_URL = "https://api.github.com";
 const TARGET_USERNAME = "dangkhoa2004";
-const EMBED_COLOR = 0x2ECC71; // Commit embed color (Green)
+const EMBED_COLOR = 0x2ecc71;
 
 function getGitHubHeaders(token) {
-    const headers = { Accept: "application/vnd.github.v3+json" };
-    if (token) { headers["Authorization"] = `token ${token}`; }
-    return headers;
+  const headers = { Accept: "application/vnd.github.v3+json" };
+  if (token) {
+    headers["Authorization"] = `token ${token}`;
+  }
+  return headers;
 }
 
 async function makeGitHubRequest(endpoint, headers, params = {}) {
-    const url = `${GITHUB_API_BASE_URL}${endpoint}`;
-    try {
-        const response = await axios.get(url, { headers, params });
-        return response.data;
-    } catch (error) {
-        const status = error.response?.status;
-        const message = error.response?.data?.message || error.message;
-        console.error(
-            `❌ [ERROR][GitHub Commit Helper] Error calling ${url}: Status ${status || "N/A"} - ${message}`
-        );
-        if (status !== 404 && status !== 409) { // Also ignore 409 (Git Repository is empty)
-             throw new Error(`GitHub API Error (Status ${status || "N/A"}): ${message}`);
-        }
-        return []; // Return empty array on 404 or 409
+  const url = `${GITHUB_API_BASE_URL}${endpoint}`;
+  try {
+    const response = await axios.get(url, { headers, params });
+    return response.data;
+  } catch (error) {
+    const status = error.response?.status;
+    const message = error.response?.data?.message || error.message;
+    console.error(
+      `❌ [LỖI][Trợ lý GitHub Commit] Lỗi khi gọi ${url}: Trạng thái ${
+        status || "N/A"
+      } - ${message}`
+    );
+    if (status !== 404 && status !== 409) {
+      throw new Error(
+        `Lỗi API GitHub (Trạng thái ${status || "N/A"}): ${message}`
+      );
     }
+    return [];
+  }
 }
 
 async function getRepoCommits(owner, repoName, token, limit = 5) {
-    const headers = getGitHubHeaders(token);
-    const params = { per_page: limit };
-    const commits = await makeGitHubRequest(`/repos/${owner}/${repoName}/commits`, headers, params);
-    // Add repoName to each commit for later use
-    return commits.map(c => ({ ...c, repoName: repoName }));
+  const headers = getGitHubHeaders(token);
+  const params = { per_page: limit };
+  const commits = await makeGitHubRequest(
+    `/repos/${owner}/${repoName}/commits`,
+    headers,
+    params
+  );
+  return commits.map((c) => ({ ...c, repoName: repoName }));
 }
 
-async function getAllRecentCommits(token, totalCommitLimit = 15, commitsPerRepo = 3) {
-    const username = TARGET_USERNAME;
-    const { repos: userRepos } = await getAllUserRepos(token); // Get repos (sorted by creation date, doesn't matter here)
-    if (!userRepos || userRepos.length === 0) {
-        console.log(`[GitHub Commit Helper] No repositories found for user ${username}.`);
-        return [];
-    }
-
-    console.log(`[GitHub Commit Helper] Fetching latest ${commitsPerRepo} commits from ${userRepos.length} repositories...`);
-    let allCommits = [];
-
-    // Create an array of promises to fetch commits concurrently
-    const commitPromises = userRepos.map(repo =>
-        getRepoCommits(username, repo.name, token, commitsPerRepo)
-            .catch(err => { // Catch errors for individual repos
-                console.warn(`[GitHub Commit Helper] Error fetching commits for ${repo.name}: ${err.message}. Skipping repo.`);
-                return []; // Return empty array on error to not break Promise.all
-            })
+async function getAllRecentCommits(
+  token,
+  totalCommitLimit = 15,
+  commitsPerRepo = 3
+) {
+  const username = TARGET_USERNAME;
+  const { repos: userRepos } = await getAllUserRepos(token);
+  if (!userRepos || userRepos.length === 0) {
+    console.log(
+      `[Trợ lý GitHub Commit] Không tìm thấy kho lưu trữ nào cho người dùng ${username}.`
     );
+    return [];
+  }
 
-    const results = await Promise.all(commitPromises);
+  console.log(
+    `[Trợ lý GitHub Commit] Đang lấy ${commitsPerRepo} commit mới nhất từ ${userRepos.length} kho lưu trữ...`
+  );
+  let allCommits = [];
 
-    // Flatten the array of arrays into a single commit list
-    results.forEach(repoCommits => {
-        allCommits = allCommits.concat(repoCommits);
-    });
+  const commitPromises = userRepos.map((repo) =>
+    getRepoCommits(username, repo.name, token, commitsPerRepo).catch((err) => {
+      console.warn(
+        `[Trợ lý GitHub Commit] Lỗi khi lấy commit cho ${repo.name}: ${err.message}. Đang bỏ qua kho lưu trữ này.`
+      );
+      return [];
+    })
+  );
 
-    console.log(`[GitHub Commit Helper] Fetched a total of ${allCommits.length} commits (unsorted).`);
+  const results = await Promise.all(commitPromises);
 
-    // Sort all collected commits by date descending (newest first)
-    allCommits.sort((a, b) => {
-        const dateA = new Date(a.commit?.author?.date || 0);
-        const dateB = new Date(b.commit?.author?.date || 0);
-        return dateB - dateA; // Sort descending
-    });
+  results.forEach((repoCommits) => {
+    allCommits = allCommits.concat(repoCommits);
+  });
 
-    // Limit the final array to the desired total number of commits
-    const finalCommits = allCommits.slice(0, totalCommitLimit);
-    console.log(`[GitHub Commit Helper] Returning ${finalCommits.length} most recent commits.`);
-    return finalCommits;
+  console.log(
+    `[Trợ lý GitHub Commit] Đã lấy tổng cộng ${allCommits.length} commit (chưa sắp xếp).`
+  );
+
+  allCommits.sort((a, b) => {
+    const dateA = new Date(a.commit?.author?.date || 0);
+    const dateB = new Date(b.commit?.author?.date || 0);
+    return dateB - dateA;
+  });
+
+  const finalCommits = allCommits.slice(0, totalCommitLimit);
+  console.log(
+    `[Trợ lý GitHub Commit] Trả về ${finalCommits.length} commit gần đây nhất.`
+  );
+  return finalCommits;
 }
 
 function createCommitEmbed(commitData) {
-    if (!commitData || !commitData.commit) return null; // Basic validation
+  if (!commitData || !commitData.commit) return null;
 
-    const commitInfo = commitData.commit;
-    const author = commitInfo.author; // Commit author (might differ from pusher)
-    const repoName = commitData.repoName || 'N/A';
-    const commitUrl = commitData.html_url || '#';
-    const commitShaShort = commitData.sha?.substring(0, 7) || 'N/A';
+  const commitInfo = commitData.commit;
+  const author = commitInfo.author;
+  const repoName = commitData.repoName || "N/A";
+  const commitUrl = commitData.html_url || "#";
+  const commitShaShort = commitData.sha?.substring(0, 7) || "N/A";
 
-    // Use first line of commit message as title
-    const messageLines = commitInfo.message?.split('\n') || ['*No commit message*'];
-    const title = messageLines[0].length > 250 ? messageLines[0].substring(0, 247) + '...' : messageLines[0];
-    // Use the rest as description (if any)
-    let description = messageLines.slice(1).join('\n').trim();
-    if (description.length > 400) { description = description.substring(0, 397) + '...'; }
-    // Don't add default text if there's no description part
-    // if (!description) description = '*No additional details*';
+  const messageLines = commitInfo.message?.split("\n") || [
+    "*Không có thông điệp commit*",
+  ];
+  const title =
+    messageLines[0].length > 250
+      ? messageLines[0].substring(0, 247) + "..."
+      : messageLines[0];
+  let description = messageLines.slice(1).join("\n").trim();
+  if (description.length > 400) {
+    description = description.substring(0, 397) + "...";
+  }
 
-    // Format date using Discord's relative timestamp
-    const commitDate = author?.date ? `<t:${Math.floor(new Date(author.date).getTime() / 1000)}:R>` : 'N/A';
+  const commitDate = author?.date
+    ? `<t:${Math.floor(new Date(author.date).getTime() / 1000)}:R>`
+    : "N/A";
 
-    const embed = new EmbedBuilder()
-        .setColor(EMBED_COLOR) // Use defined color
-        .setTitle(title)
-        .setURL(commitUrl)
-        // Add repo and author info clearly in the description
-        .setDescription(`**Repo:** [${repoName}](https://github.com/${TARGET_USERNAME}/${repoName})\n**Author:** ${author?.name || 'Unknown'}${description ? `\n\n${description}` : ''}`)
-        .addFields(
-            { name: 'Commit', value: `[\`${commitShaShort}\`](${commitUrl})`, inline: true }, // Link the SHA
-            { name: 'Date', value: commitDate, inline: true }
-        )
-        .setTimestamp(new Date(author?.date || Date.now())); // Use commit date for timestamp
+  const embed = new EmbedBuilder()
+    .setColor(EMBED_COLOR)
+    .setTitle(title)
+    .setURL(commitUrl)
+    .setDescription(
+      `**Repo:** [${repoName}](https://github.com/${TARGET_USERNAME}/${repoName})\n**Tác giả:** ${
+        author?.name || "Không rõ"
+      }${description ? `\n\n${description}` : ""}`
+    )
+    .addFields(
+      {
+        name: "Commit",
+        value: `[\`${commitShaShort}\`](${commitUrl})`,
+        inline: true,
+      },
+      { name: "Ngày", value: commitDate, inline: true }
+    )
+    .setTimestamp(new Date(author?.date || Date.now()));
 
-    return embed;
+  return embed;
 }
 
 async function generateCommitEmbedsArray(token, limit = 15) {
-    const recentCommits = await getAllRecentCommits(token, limit); // Get sorted commits
-    // Map commits to embeds and filter out any nulls (from createCommitEmbed validation)
-    const embedsArray = recentCommits
-                          .map(commit => createCommitEmbed(commit))
-                          .filter(embed => embed !== null);
-    return {
-        embeds: embedsArray,
-        displayCount: embedsArray.length,
-        username: TARGET_USERNAME // Return username for the control message
-    };
+  const recentCommits = await getAllRecentCommits(token, limit);
+  const embedsArray = recentCommits
+    .map((commit) => createCommitEmbed(commit))
+    .filter((embed) => embed !== null);
+  return {
+    embeds: embedsArray,
+    displayCount: embedsArray.length,
+    username: TARGET_USERNAME,
+  };
 }
 
-// --- Module Exports (Corrected) ---
 module.exports = {
-    generateCommitEmbedsArray,      // Ensure this function is exported
-    COMMIT_EMBED_COLOR: EMBED_COLOR // Export color with the desired name
+  generateCommitEmbedsArray,
+  COMMIT_EMBED_COLOR: EMBED_COLOR,
 };
